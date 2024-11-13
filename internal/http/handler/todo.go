@@ -21,14 +21,17 @@ func NewTodoHandler(todoService service.TodoService) *TodoHandler {
 }
 
 func (h *TodoHandler) CreateTodoAsAdmin(ctx echo.Context) error {
+	userID, ok := ctx.Get("user_id").(uint)
+	if !ok {
+		return ctx.JSON(http.StatusUnauthorized,response.ErrorResponse( http.StatusUnauthorized,fmt.Sprintf("Invalid or missing userID: %d " ,userID) ))
+	}
 	var req struct {
-		UserID uint `json:"user_id"`
 		Title string `json:"title"`
 	}
 	if err := ctx.Bind(&req); err != nil {
 		return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, err.Error()))
 	}
-	todo, err := h.todoService.CreateTodo(ctx.Request().Context(), req.UserID, req.Title)
+	todo, err := h.todoService.CreateTodo(ctx.Request().Context(), uint(userID), req.Title)
 	if err != nil {
 		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, err.Error()))
 	}
