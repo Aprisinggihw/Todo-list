@@ -78,12 +78,6 @@ func (s *userService) Register(ctx context.Context, req *entity.UserReg) error {
 	}
 	req.Password = string(hashedPassword)
 	
-	// Invalidate cache "todo-list:users:find-all"
-	keyFindAll := "todo-list:users:find-all"
-	err = s.cacheable.Delete(keyFindAll) // Menghapus cache lama
-	if err != nil {
-		return errors.New("falied deleting key cache")
-	}
 	return s.userRepository.CreateUser(ctx, req)
 }
 
@@ -114,11 +108,6 @@ func (s *userService) Login(ctx context.Context, username, password string) (str
 	token, err := s.tokenUseCase.GenerateAccessToken(claims)
 	if err != nil {
 		return "", errors.New("ada kesalahan di server")
-	}
-	keyGetTodos := "todo-list:todos:get-todos"
-	err = s.cacheable.Delete(keyGetTodos)
-	if err != nil {
-		return "", errors.New("falied deleting key cache")
 	}
 	return token, nil
 }

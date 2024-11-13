@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"strconv"
 	"todo-list/internal/entity"
 	"todo-list/internal/service"
 	"todo-list/pkg/response"
@@ -95,12 +96,24 @@ func (h *TodoHandler) GetTodosHandler(ctx echo.Context) error {
 
 func (h *TodoHandler) UpdateTodoAsAdmin(ctx echo.Context) error {
 
+	todoID, err := strconv.ParseUint(ctx.Param("todo_id"), 10, 32)
+	if err != nil {
+		return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, "Invalid todo ID"))
+	}
+
+	userID, err := strconv.ParseUint(ctx.Param("userID"), 10, 32)
+	if err != nil {
+		return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, "Invalid todo ID"))
+	}
+
 	req := new(entity.Todo)
+	req.ID = uint(todoID)
+	req.UserID = uint(userID)
 	if err := ctx.Bind(req); err != nil {
 		return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, err.Error()))
 	}
 
-	err := h.todoService.UpdateTodo(context.Background(), req.UserID, req.ID, req.Title, req.Done)
+	err = h.todoService.UpdateTodo(context.Background(), req.UserID, req.ID, req.Title, req.Done)
 	if err != nil {
 		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, err.Error()))
 	}
@@ -109,14 +122,17 @@ func (h *TodoHandler) UpdateTodoAsAdmin(ctx echo.Context) error {
 }
 
 func (h *TodoHandler) UpdateTodoHandler(ctx echo.Context) error {
-
 	userID, ok := ctx.Get("user_id").(uint)
 	if !ok {
-		return ctx.JSON(http.StatusUnauthorized,response.ErrorResponse( http.StatusUnauthorized,fmt.Sprintf("Invalid or missing userID: %d " ,userID) ))
+		return ctx.JSON(http.StatusUnauthorized, response.ErrorResponse(http.StatusUnauthorized, "Invalid or missing userID"))
+	}
+
+	todoID, err := strconv.ParseUint(ctx.Param("id"), 10, 32)
+	if err != nil {
+		return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, "Invalid todo ID"))
 	}
 
 	var req struct {
-		ID    uint   `json:"id"`
 		Title string `json:"title"`
 		Done  bool   `json:"done"`
 	}
@@ -124,7 +140,7 @@ func (h *TodoHandler) UpdateTodoHandler(ctx echo.Context) error {
 		return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, err.Error()))
 	}
 
-	err := h.todoService.UpdateTodo(context.Background(), userID, req.ID, req.Title, req.Done)
+	err = h.todoService.UpdateTodo(context.Background(), userID, uint(todoID), req.Title, req.Done)
 	if err != nil {
 		if err.Error() == "unauthorized or not found" {
 			return ctx.JSON(http.StatusForbidden, response.ErrorResponse(http.StatusForbidden, err.Error()))
@@ -136,15 +152,17 @@ func (h *TodoHandler) UpdateTodoHandler(ctx echo.Context) error {
 }
 
 func (h *TodoHandler) DeleteTodoAsAdmin(ctx echo.Context) error {
-	var req struct {
-		ID     uint `json:"id"`
-		UserID uint `json:"user_id"`
+	
+	todoID, err := strconv.ParseUint(ctx.Param("todo_id"), 10, 32)
+	if err != nil {
+		return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, "Invalid todo ID"))
 	}
-	if err := ctx.Bind(&req); err != nil {
-		return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, err.Error()))
+	userID, err := strconv.ParseUint(ctx.Param("userID"), 10, 32)
+	if err != nil {
+		return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, "Invalid todo ID"))
 	}
 
-	err := h.todoService.DeleteTodo(ctx.Request().Context(), req.UserID, req.ID)
+	err = h.todoService.DeleteTodo(ctx.Request().Context(), uint(userID), uint(todoID))
 	if err != nil {
 		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, err.Error()))
 	}
@@ -152,18 +170,24 @@ func (h *TodoHandler) DeleteTodoAsAdmin(ctx echo.Context) error {
 	return ctx.JSON(http.StatusOK, response.SuccessResponse("todo deleted successfully", nil))
 }
 
+
 func (h *TodoHandler) DeleteTodoHandler(ctx echo.Context) error {
 	userID, ok := ctx.Get("user_id").(uint)
 	if !ok {
 		return ctx.JSON(http.StatusUnauthorized,response.ErrorResponse( http.StatusUnauthorized,fmt.Sprintf("Invalid or missing userID: %d " ,userID) ))
 	}
-	var req struct {
-		TodoID uint `json:"todo_id"`
+	todoID, err := strconv.ParseUint(ctx.Param("id"), 10, 32)
+	if err != nil {
+		return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, "Invalid todo ID"))
 	}
+	var req struct {
+		TodoID uint 
+	}
+	req.TodoID = uint(todoID)
 	if err := ctx.Bind(&req); err != nil {
 		return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, err.Error()))
 	}
-	err := h.todoService.DeleteTodo(ctx.Request().Context(), userID, req.TodoID)
+	err = h.todoService.DeleteTodo(ctx.Request().Context(), userID, req.TodoID)
 	if err != nil {
 		if err.Error() == "unauthorized or not found" {
 			return ctx.JSON(http.StatusForbidden, response.ErrorResponse(http.StatusForbidden, err.Error()))
