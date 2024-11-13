@@ -48,8 +48,8 @@ func PrivateRoutes(userHandler handler.UserHandler, todosHandler handler.TodoHan
 			Roles:   []string{"admin"},
 		},
 		{
-			Method:  http.MethodPost,
-			Path:    "/admin/todos",
+			Method:  http.MethodGet,
+			Path:    "/admin/todos/:userID",
 			Handler: todosHandler.GetTodosByUserIdAsAdmin,
 			Roles:   []string{"admin"},
 		},

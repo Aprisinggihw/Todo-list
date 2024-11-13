@@ -65,12 +65,11 @@ func (h *TodoHandler) GetAllHandler(ctx echo.Context) error {
 }
 
 func (h *TodoHandler) GetTodosByUserIdAsAdmin(ctx echo.Context) error {
-	var reqUserID uint
-	if err := ctx.Bind(reqUserID); err != nil {
-		return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, err.Error()))
+	userID, err := strconv.ParseUint(ctx.Param("userID"), 10, 32)
+	if err != nil {
+		return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, "Invalid todo ID"))
 	}
-	
-	todos, err := h.todoService.GetTodosByUserID(ctx.Request().Context(), reqUserID)
+	todos, err := h.todoService.GetTodosByUserID(ctx.Request().Context(), uint(userID))
 	if err != nil {
 		return ctx.JSON(http.StatusInternalServerError,
 			response.ErrorResponse(http.StatusInternalServerError, err.Error()))
